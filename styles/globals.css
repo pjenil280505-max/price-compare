@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Theme tokens. --font-* variables are meant to be set by next/font in
+  app/layout.tsx (see README.md "Wiring fonts"). Sensible system fallbacks
+  are already defined in tailwind.config.ts so the app still looks correct
+  before fonts are wired up.
+*/
+:root {
+  --font-display: Georgia, Cambria, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --surface: 250 249 246; /* paper */
+  --surface-muted: 240 238 232;
+  --foreground: 20 19 28; /* ink */
+  --border: 229 228 234;
+}
+
+.dark {
+  --surface: 20 19 28; /* ink */
+  --surface-muted: 29 27 41;
+  --foreground: 245 245 247;
+  --border: 43 41 61;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: rgb(var(--surface));
+  color: rgb(var(--foreground));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prices and other tabular data use the mono face with true tabular figures,
+   so digits align in comparison tables and price columns — a functional
+   choice, not a decorative one. */
+.font-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Visible keyboard focus everywhere, including inside custom components. */
+:focus-visible {
+  outline: 2px solid rgb(226 163 59);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Belt-and-suspenders reduced-motion rule: even if a component forgets to
+   check the preference in JS, CSS-driven animation/transition is capped. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+  Skeleton shimmer.
+
+  Animating background-position repaints the element's full area on every
+  frame. On a 24-card results grid that is 24 simultaneous large repaints —
+  the single worst source of jank in the app. This instead slides a
+  pseudo-element with transform, which the compositor handles without
+  repainting, and `contain: paint` stops the overflow affecting anything
+  outside the card.
+*/
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgb(var(--surface-muted));
+  contain: paint;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(226, 163, 59, 0.14) 50%,
+    transparent 100%
+  );
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Thin, quiet scrollbar for horizontally-scrolling rails (categories, chips). */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--border));
+  border-radius: 999px;
+}
+
+/* ---------------------------------------------------------------------
+   Performance: rendering containment
+   --------------------------------------------------------------------- */
+
+/*
+  Applied to cards in long grids. `content-visibility: auto` lets the
+  browser skip layout and paint for cards scrolled out of view, which is
+  the difference between a smooth and a stuttering scroll on a phone with
+  24+ results.
+
+  contain-intrinsic-size supplies a placeholder size so skipped content
+  still contributes to scrollbar height — without it the scrollbar jumps
+  as you scroll, which is worse than the problem being solved.
+*/
+.card-contain {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+/*
+  Hover elevation. will-change is applied only while the pointer is over
+  the element — setting it permanently forces every card onto its own
+  compositor layer, which on a large grid costs more memory than the
+  animation saves.
+*/
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    will-change: transform;
+  }
+}
+
+/*
+  The sticky header's backdrop-filter is expensive to composite on every
+  scroll frame on mid-range Android. Below the lg breakpoint it falls back
+  to an opaque background, which looks near-identical while scrolling and
+  measurably reduces dropped frames.
+*/
+@media (max-width: 1023px) {
+  .header-blur {
+    backdrop-filter: none;
+    background-color: rgb(var(--surface));
+  }
+}
+
+/* Images fade in once decoded, avoiding a hard pop as each one lands. */
+.img-fade {
+  opacity: 0;
+  animation: img-fade-in 0.3s ease-out forwards;
+}
+@keyframes img-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Touch targets
+   --------------------------------------------------------------------- */
+
+/*
+  Expands a control's hit area to at least 44px without changing its
+  rendered size. Used on small icon buttons that sit next to other tappable
+  elements, where a near-miss activates the wrong thing.
+
+  The pseudo-element is centred on the control and sits above it, so it
+  captures the tap regardless of the visual dimensions.
+*/
+.touch-target {
+  position: relative;
+}
+
+.touch-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* Pointer devices are precise; the expansion would only make hover areas
+   overlap awkwardly. */
+@media (hover: hover) and (pointer: fine) {
+  .touch-target::after {
+    display: none;
+  }
+}

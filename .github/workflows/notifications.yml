@@ -1,0 +1,41 @@
+name: Send notifications
+
+# Drains the notification delivery queue: first attempts and due retries.
+#
+# Separate from the alert-evaluation job on purpose — a provider outage
+# should retry on its own schedule without re-running price evaluation, and
+# a slow provider must not consume the alert job's time budget.
+#
+# Requires: APP_BASE_URL, INTERNAL_CRON_SECRET
+
+on:
+  schedule:
+    # Every 30 minutes. Retries use exponential backoff internally, so a
+# frequent trigger mostly finds nothing due and returns immediately.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: notification-sender
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Drain notification queue
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          INTERNAL_CRON_SECRET: ${{ secrets.INTERNAL_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_BASE_URL:-}" ] || [ -z "${INTERNAL_CRON_SECRET:-}" ]; then
+            echo "::error::APP_BASE_URL and INTERNAL_CRON_SECRET must both be set."
+            exit 1
+          fi
+          curl --silent --show-error --fail-with-body --max-time 540 \
+            --output result.json --write-out "HTTP %{http_code}\n" \
+            -X POST "${APP_BASE_URL}/api/internal/notifications" \
+            -H "x-internal-secret: ${INTERNAL_CRON_SECRET}"
+          cat result.json

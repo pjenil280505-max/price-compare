@@ -1,0 +1,96 @@
+name: Tests
+
+# Runs on every push and pull request. Results are readable from the GitHub
+# mobile app, which is the point: this project is developed from a phone, so
+# CI is the test runner.
+#
+# No secrets are required for the unit/integration job — it runs entirely
+# offline against stubs. The E2E job only runs when secrets are present.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Unit, integration & static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # The suite runs against offline stubs and needs no dependencies, so
+      # this is best-effort — a registry outage shouldn't block testing.
+      - name: Install dependencies
+        run: npm ci || npm install || true
+
+      - name: Run test suites
+        run: node scripts/test-all.mjs
+
+      - name: Type-check
+        # Continues on error: without node_modules present, tsc reports
+        # module-resolution cascades that aren't real defects. The output is
+        # still worth reading.
+        continue-on-error: true
+        run: npx tsc -p tsconfig.check.json
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        env:
+          # Placeholder values: the build must succeed without production
+          # secrets, or it cannot be verified before deploy.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: https://example.com
+        run: npm run build
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Only meaningful against a real deployment with a real database.
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

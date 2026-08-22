@@ -1,0 +1,72 @@
+name: Sync merchant connectors
+
+# Scheduled ingestion. GitHub Actions is used rather than Vercel Cron
+# because it's free on this stack, lives in the repo (so the schedule is
+# version-controlled and editable from the GitHub mobile app), and doesn't
+# consume serverless function quota beyond the single HTTP call it makes.
+#
+# The heavy lifting happens in the app's /api/internal/sync route, not here
+# — this workflow is only a trigger. That keeps sync logic in one place and
+# testable via "Sync Now" in the admin UI.
+#
+# REQUIRED REPOSITORY SECRETS (Settings > Secrets and variables > Actions):
+#   APP_BASE_URL         e.g. https://your-domain.com  (no trailing slash)
+#   INTERNAL_CRON_SECRET must match the app's env var of the same name
+
+on:
+  schedule:
+    # Every 2 hours. The route itself decides which jobs are actually due
+    # (sync_jobs.next_run_at), so a frequent trigger is cheap — it usually
+    # finds nothing to do and returns immediately.
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+    # Lets you trigger a sync by hand from the GitHub UI or mobile app.
+
+# Prevents two scheduled runs overlapping if one takes unusually long.
+concurrency:
+  group: connector-sync
+  cancel-in-progress: false
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger connector sync
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          INTERNAL_CRON_SECRET: ${{ secrets.INTERNAL_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_BASE_URL:-}" ] || [ -z "${INTERNAL_CRON_SECRET:-}" ]; then
+            echo "::error::APP_BASE_URL and INTERNAL_CRON_SECRET repository secrets must both be set."
+            exit 1
+          fi
+
+          # --fail-with-body so a non-2xx response both prints the body and
+          # fails the step, making the run visible in the Actions tab
+          # instead of silently "succeeding" with an error payload.
+          http_code=$(curl \
+            --silent \
+            --show-error \
+            --fail-with-body \
+            --max-time 540 \
+            --retry 2 \
+            --retry-delay 30 \
+            --write-out "%{http_code}" \
+            --output response.json \
+            -X POST "${APP_BASE_URL}/api/internal/sync" \
+            -H "Content-Type: application/json" \
+            -H "x-internal-secret: ${INTERNAL_CRON_SECRET}")
+
+          echo "HTTP ${http_code}"
+          echo "--- response ---"
+          cat response.json
+          echo ""
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "::error::Connector sync trigger failed. Check the admin dashboard's"
+          echo "::error::connector page for per-job status and the sync_logs table for detail."

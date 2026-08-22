@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment variables — NEVER commit real secrets.
+# .env.local.example (checked in, no real values) documents what's needed.
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI local state
+supabase/.branches
+supabase/.temp
+
+# Editor/OS
+.DS_Store
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Offline test shims created by the local harness (never commit)
+node_modules/

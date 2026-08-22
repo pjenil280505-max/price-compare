@@ -1,0 +1,60 @@
+name: Roll up price history
+
+# Weekly storage maintenance. Collapses raw price observations older than
+# the retention window into daily aggregates, preserving all-time price
+# statistics while keeping the raw table bounded.
+#
+# Requires the same repository secrets as the connector sync workflow:
+#   APP_BASE_URL, INTERNAL_CRON_SECRET
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"   # Sundays 03:00 UTC — low-traffic window
+  workflow_dispatch:
+
+concurrency:
+  group: price-rollup
+  cancel-in-progress: false
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Trigger price-history rollup
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          INTERNAL_CRON_SECRET: ${{ secrets.INTERNAL_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_BASE_URL:-}" ] || [ -z "${INTERNAL_CRON_SECRET:-}" ]; then
+            echo "::error::APP_BASE_URL and INTERNAL_CRON_SECRET must both be set."
+            exit 1
+          fi
+          curl --silent --show-error --fail-with-body --max-time 780 \
+            --output response.json --write-out "HTTP %{http_code}\n" \
+            -X POST "${APP_BASE_URL}/api/internal/rollup" \
+            -H "x-internal-secret: ${INTERNAL_CRON_SECRET}"
+          cat response.json
+
+  # Alert evaluation runs on the same schedule as data maintenance: alerts
+  # are only meaningful once prices have been refreshed.
+  trigger-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Evaluate price alerts
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          INTERNAL_CRON_SECRET: ${{ secrets.INTERNAL_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_BASE_URL:-}" ] || [ -z "${INTERNAL_CRON_SECRET:-}" ]; then
+            echo "::error::APP_BASE_URL and INTERNAL_CRON_SECRET must both be set."
+            exit 1
+          fi
+          curl --silent --show-error --fail-with-body --max-time 540 \
+            --output alerts.json --write-out "HTTP %{http_code}\n" \
+            -X POST "${APP_BASE_URL}/api/internal/alerts" \
+            -H "x-internal-secret: ${INTERNAL_CRON_SECRET}"
+          cat alerts.json
