@@ -55,7 +55,11 @@ function sensitiveValues(): string[] {
     "ADMITAD_CLIENT_SECRET",
     "AMAZON_CREATORS_CLIENT_SECRET",
   ];
-  return names.map((n) => process.env[n]).filter((v): v is string => Boolean(v) && v.length >= 8);
+  // typeof narrows properly; Boolean(v) does not, so v stayed
+  // `string | undefined` and v.length was a type error.
+  return names
+    .map((n) => process.env[n])
+    .filter((v): v is string => typeof v === "string" && v.length >= 8);
 }
 
 export async function resolveAffiliateLink(

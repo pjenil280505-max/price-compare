@@ -1,14 +1,19 @@
 "use client";
 
 import { useReducedMotion } from "framer-motion";
-import type { Variants, Transition } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 /** Wraps framer-motion's hook so the rest of the app imports one stable name. */
 export function useReducedMotionSafe(): boolean {
   return useReducedMotion() ?? false;
 }
 
-export const EASE_OUT: Transition["ease"] = [0.22, 1, 0.36, 1];
+/**
+ * Cubic-bezier control points. Typed as an explicit tuple rather than
+ * Transition["ease"] — framer-motion no longer exposes that member, and a
+ * bezier is a 4-number tuple regardless of library version.
+ */
+export const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },

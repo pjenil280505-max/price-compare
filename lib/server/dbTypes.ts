@@ -71,3 +71,27 @@ export interface DbProductRow {
   categories: DbCategory | null;
   product_variants: DbProductVariant[];
 }
+
+/**
+ * Normalizes a PostgREST embedded relation to a single row.
+ *
+ * A to-one embed (`merchants ( name )`) is returned by PostgREST as a
+ * single object, but the Supabase client's inferred types describe it as an
+ * ARRAY unless generated database types are present. Casting straight to an
+ * object therefore fails type-checking with:
+ *
+ *   Conversion of type '{ name: any; }[]' to type '{ name: string; }'
+ *   may be a mistake...
+ *
+ * Handling both shapes is correct at runtime as well as at compile time —
+ * the same query can return either form depending on how the relation is
+ * declared in the schema cache.
+ *
+ * Replace with `supabase gen types typescript` output once the database is
+ * live; this helper then becomes a no-op safety net rather than a
+ * necessity.
+ */
+export function embeddedOne<T>(value: unknown): T | null {
+  if (value == null) return null;
+  return (Array.isArray(value) ? (value[0] ?? null) : value) as T | null;
+}

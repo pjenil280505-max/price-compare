@@ -149,7 +149,8 @@ function parseLeafCategory(categoryPath: string | null): string | undefined {
 
     const named = firstPath
       .map((node) => node?.node_name)
-      .filter((name): name is string => Boolean(name) && name !== "FLIPKART_TREE");
+      // typeof, not Boolean(): the latter does not narrow the type.
+      .filter((name): name is string => typeof name === "string" && name !== "FLIPKART_TREE");
 
     return named[named.length - 1];
   } catch {

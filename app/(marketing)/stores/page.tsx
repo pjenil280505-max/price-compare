@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { fetchMerchants } from "@/lib/server/catalog";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Star } from "lucide-react";
-import { api } from "@/lib/api";
 import { Section } from "@/components/layout/Section";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MerchantLogo } from "@/components/merchant/Merchant";
@@ -15,7 +16,7 @@ export const metadata = {
 };
 
 export default async function StoresPage() {
-  const merchants = await api.getMerchants();
+  const merchants = await fetchMerchants(createPublicClient());
 
   return (
     <Section>

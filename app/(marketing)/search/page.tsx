@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { performSearch, PAGE_SIZE } from "@/lib/server/search";
-import { api } from "@/lib/api";
+import { createPublicClient } from "@/lib/supabase/public";
+import { fetchCategories, fetchTrending } from "@/lib/server/catalog";
 import type { SortOption } from "@/lib/types";
 import { Section } from "@/components/layout/Section";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -48,7 +49,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = sp.q?.trim() ?? "";
 
   if (!query) {
-    const [categories, trending] = await Promise.all([api.getCategories(), api.getTrending()]);
+    const browseClient = createPublicClient();
+    const [categories, trending] = await Promise.all([
+      fetchCategories(browseClient),
+      fetchTrending(browseClient),
+    ]);
     return (
       <Section>
         <PageHeader title="Search" description="Try a product, a brand, or something like “gaming laptop under ₹60,000”." />

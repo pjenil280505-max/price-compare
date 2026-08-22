@@ -5,7 +5,7 @@ import { enforceRateLimit } from "@/lib/server/rateLimit";
 import { priceAlertSchema } from "@/lib/validation/user";
 import { requireUser } from "@/lib/server/auth";
 import { fetchProductsByIds } from "@/lib/server/products";
-import type { PriceAlertRecord } from "@/lib/types";
+import type { PriceAlertRecord, Product } from "@/lib/types";
 
 export const GET = withErrorHandling(async () => {
   const supabase = await createClient();
@@ -29,8 +29,8 @@ export const GET = withErrorHandling(async () => {
 
   if (currentPricesRes.error) throw currentPricesRes.error;
 
-  const productById = new Map(products.map((p) => [p.id, p]));
-  const currentPriceByProductId = new Map(
+  const productById = new Map<string, Product>(products.map((p) => [p.id, p]));
+  const currentPriceByProductId = new Map<string, number>(
     (currentPricesRes.data ?? []).map((row: { product_id: string; current_price: number }) => [
       row.product_id,
       row.current_price,

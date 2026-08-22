@@ -7,6 +7,7 @@ import {
   type ConnectorFailure,
   type ConnectorPage,
   type MerchantConnector,
+  type NormalizedProduct,
   type SyncMode,
 } from "../types";
 import {
@@ -152,7 +153,9 @@ export const flipkartConnector: MerchantConnector = {
         });
 
         const failures: ConnectorFailure[] = [];
-        const products = [];
+        // Annotated explicitly: an unannotated [] can infer as never[]
+        // depending on the surrounding contextual type.
+        const products: NormalizedProduct[] = [];
 
         for (const item of response.productInfoList ?? []) {
           const mapped = mapFlipkartProduct(item);

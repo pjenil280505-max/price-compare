@@ -1,9 +1,10 @@
 import Image from "next/image";
+import { fetchAlternatives, fetchPriceHistory } from "@/lib/server/catalog";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
-import { ApiError, api } from "@/lib/api";
 import { createPublicClient } from "@/lib/supabase/public";
+import { fetchProductBySlug } from "@/lib/server/products";
 import { fetchProductPricing } from "@/lib/server/pricing";
 import { siteUrl } from "@/lib/seo/site";
 import {
@@ -24,13 +25,14 @@ interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * Reads the product directly rather than through /api/products/[slug].
+ * fetchProductBySlug returns null for a miss, so no 404 round-trip is
+ * needed — and it works during static generation, when no server is
+ * listening.
+ */
 async function loadProduct(slug: string) {
-  try {
-    return await api.getProduct(slug);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return null;
-    throw err;
-  }
+  return fetchProductBySlug(createPublicClient(), slug);
 }
 
 /**
@@ -81,8 +83,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Public pricing data — cookie-free so this page can stay cacheable.
   const supabase = createPublicClient();
   const [priceHistory, alternatives, pricing] = await Promise.all([
-    api.getPriceHistory(product.slug),
-    api.getAlternatives(product.slug),
+    fetchPriceHistory(supabase, product.slug),
+    fetchAlternatives(supabase, product.slug),
     fetchProductPricing(supabase, product.id),
   ]);
 

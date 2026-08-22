@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { performSearch } from "@/lib/server/search";
+import { fetchCategories } from "@/lib/server/catalog";
+import { createPublicClient } from "@/lib/supabase/public";
 import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
 import { siteUrl } from "@/lib/seo/site";
 import { buildBreadcrumbJsonLd, serializeJsonLd } from "@/lib/seo/structuredData";
 import { Section } from "@/components/layout/Section";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { InteractiveProductGrid } from "@/components/product/InteractiveProductGrid";
+import { SearchResultsGrid } from "@/components/search/SearchResultsGrid";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -15,7 +17,7 @@ export const revalidate = 600;
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const categories = await api.getCategories();
+  const categories = await fetchCategories(createPublicClient());
   const category = categories.find((c) => c.slug === slug);
   if (!category) return { title: "Category" };
 
@@ -32,11 +34,11 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params;
-  const categories = await api.getCategories();
+  const categories = await fetchCategories(createPublicClient());
   const category = categories.find((c) => c.slug === slug);
   if (!category) notFound();
 
-  const result = await api.search({ query: "", categorySlug: category.slug });
+  const result = await performSearch(createPublicClient(), { query: "", categorySlug: category.slug });
 
   const site = siteUrl();
 
@@ -63,9 +65,16 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         }
       />
       <div className="mt-8">
-        <InteractiveProductGrid
-          initialProducts={result.products}
+        {/*
+          SearchResultsGrid consumes SearchResultItem directly and renders
+          the freshness label on every price. InteractiveProductGrid takes
+          the older Product shape, which would mean mapping here and losing
+          the freshness data — the one thing a price page must not drop.
+        */}
+        <SearchResultsGrid
+          items={result.items}
           emptyTitle={`No products in ${category.name} yet`}
+          emptyDescription="Nothing has been imported into this category yet."
         />
       </div>
     </Section>

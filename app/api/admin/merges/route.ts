@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { badRequest, withErrorHandling } from "@/lib/server/errors";
 import { requirePermission } from "@/lib/server/rbac";
+import { embeddedOne } from "@/lib/server/dbTypes";
 
 /** GET — the merge audit log. Every merge/unmerge, who did it, and why. */
 export const GET = withErrorHandling(async () => {
@@ -38,8 +39,8 @@ export const GET = withErrorHandling(async () => {
   const entries = (data ?? []).map((row) => ({
     id: row.id,
     action: row.action,
-    primaryTitle: (row.primary as { title?: string } | null)?.title ?? null,
-    secondaryTitle: (row.secondary as { title?: string } | null)?.title ?? null,
+    primaryTitle: embeddedOne<{ title?: string }>(row.primary)?.title ?? null,
+    secondaryTitle: embeddedOne<{ title?: string }>(row.secondary)?.title ?? null,
     matchTier: row.match_tier,
     confidence: row.confidence,
     reason: row.reason,

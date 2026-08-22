@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withErrorHandling } from "@/lib/server/errors";
+import { embeddedOne } from "@/lib/server/dbTypes";
 import { requirePermission } from "@/lib/server/rbac";
 
 /**
@@ -41,7 +42,9 @@ export const GET = withErrorHandling(async (request: Request) => {
   const failedRuns = (runsRes.data ?? []).map((r) => ({
     id: r.id,
     merchant:
-      ((r.sync_jobs as { merchants: { name: string } | null } | null)?.merchants?.name) ?? "Unknown",
+      embeddedOne<{ name: string }>(
+        embeddedOne<{ merchants: unknown }>(r.sync_jobs)?.merchants,
+      )?.name ?? "Unknown",
     startedAt: r.started_at,
     itemsProcessed: r.items_processed,
     itemsFlagged: r.items_flagged,
@@ -56,8 +59,11 @@ export const GET = withErrorHandling(async (request: Request) => {
     reason: typeof f.reason === "string" ? f.reason.slice(0, 300) : "",
     createdAt: f.created_at,
     merchant:
-      ((f.sync_logs as { sync_jobs: { merchants: { name: string } | null } | null } | null)
-        ?.sync_jobs?.merchants?.name) ?? "Unknown",
+      embeddedOne<{ name: string }>(
+        embeddedOne<{ merchants: unknown }>(
+          embeddedOne<{ sync_jobs: unknown }>(f.sync_logs)?.sync_jobs,
+        )?.merchants,
+      )?.name ?? "Unknown",
   }));
 
   // Group by reason so the operator sees "500 items failed for ONE reason",

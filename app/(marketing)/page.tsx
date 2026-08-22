@@ -1,5 +1,6 @@
 import { CheckCircle2, LineChart, ShoppingBag } from "lucide-react";
-import { api } from "@/lib/api";
+import { fetchCategories, fetchDeals, fetchTrending } from "@/lib/server/catalog";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Hero } from "@/components/home/Hero";
 import { PriceTicker } from "@/components/home/PriceTicker";
 import { Section } from "@/components/layout/Section";
@@ -25,10 +26,12 @@ const steps = [
 ];
 
 export default async function HomePage() {
+  const supabase = createPublicClient();
+
   const [categories, trending, deals] = await Promise.all([
-    api.getCategories(),
-    api.getTrending(),
-    api.getDeals(),
+    fetchCategories(supabase),
+    fetchTrending(supabase),
+    fetchDeals(supabase),
   ]);
 
   return (

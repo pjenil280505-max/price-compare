@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withErrorHandling } from "@/lib/server/errors";
+import { embeddedOne } from "@/lib/server/dbTypes";
 import { requirePermission } from "@/lib/server/rbac";
 
 /**
@@ -40,7 +41,7 @@ export const GET = withErrorHandling(async (request: Request) => {
     const envVar = c.tracking_id_env_var as string | null;
     return {
       merchantId: c.merchant_id,
-      merchantName: (c.merchants as { name: string } | null)?.name ?? "Unknown",
+      merchantName: embeddedOne<{ name: string }>(c.merchants)?.name ?? "Unknown",
       network: c.network,
       strategy: c.link_strategy,
       isActive: c.is_active,

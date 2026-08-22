@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withErrorHandling } from "@/lib/server/errors";
+import { embeddedOne } from "@/lib/server/dbTypes";
 import { requirePermission } from "@/lib/server/rbac";
 import { listConnectors } from "@/lib/connectors/registry";
 import { isEmailConfigured } from "@/lib/notifications/email";
@@ -73,7 +74,9 @@ export const GET = withErrorHandling(async () => {
 
   const recentRuns = (recentRunsRes.data ?? []).map((r) => ({
     id: r.id,
-    merchant: ((r.sync_jobs as { merchants: { name: string } | null } | null)?.merchants?.name) ?? "Unknown",
+    merchant: embeddedOne<{ name: string }>(
+      embeddedOne<{ merchants: unknown }>(r.sync_jobs)?.merchants,
+    )?.name ?? "Unknown",
     status: r.status,
     startedAt: r.started_at,
     itemsProcessed: r.items_processed,
@@ -109,7 +112,7 @@ export const GET = withErrorHandling(async () => {
 
   // --- Affiliate ---------------------------------------------------
   const affiliateConfigs = (affiliateRes.data ?? []).map((c) => ({
-    merchantName: (c.merchants as { name: string } | null)?.name ?? "Unknown",
+    merchantName: embeddedOne<{ name: string }>(c.merchants)?.name ?? "Unknown",
     network: c.network,
     isActive: c.is_active,
     // Presence only — never the value.

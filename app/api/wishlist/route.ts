@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { withErrorHandling } from "@/lib/server/errors";
 import { requireUser } from "@/lib/server/auth";
 import { fetchProductsByIds } from "@/lib/server/products";
-import type { WishlistItem } from "@/lib/types";
+import type { Product, WishlistItem } from "@/lib/types";
 
 /** Most-recent items returned per request. */
 const MAX_WISHLIST_ITEMS = 200;
@@ -27,10 +27,13 @@ export const GET = withErrorHandling(async () => {
 
   const productIds = (data ?? []).map((row) => row.product_id);
   const products = await fetchProductsByIds(supabase, productIds);
-  const productById = new Map(products.map((p) => [p.id, p]));
+  const productById = new Map<string, Product>(products.map((p) => [p.id, p]));
 
   const items: WishlistItem[] = (data ?? [])
-    .map((row) => {
+    // The explicit `WishlistItem | null` return type is required: without
+    // it TS infers a structural object type, which makes the `item is
+    // WishlistItem` predicate below invalid and stops it narrowing null away.
+    .map((row): WishlistItem | null => {
       const product = productById.get(row.product_id);
       if (!product) return null;
       return { id: row.id, product: { ...product, isWishlisted: true }, addedAt: row.created_at };

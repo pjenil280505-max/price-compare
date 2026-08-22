@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withErrorHandling } from "@/lib/server/errors";
+import { embeddedOne } from "@/lib/server/dbTypes";
 import { requirePermission } from "@/lib/server/rbac";
 import type { AdminOverview, ConnectorStatus } from "@/lib/types";
 
@@ -45,7 +46,7 @@ export const GET = withErrorHandling(async () => {
   }
 
   const connectors = (jobsRes.data ?? []).map((job) => {
-    const merchantName = (job.merchants as { name: string } | null)?.name ?? "Unknown merchant";
+    const merchantName = embeddedOne<{ name: string }>(job.merchants)?.name ?? "Unknown merchant";
     const lastRunAt = job.last_run_at;
     let status: ConnectorStatus = "down";
     if (!job.is_active) status = "down";
@@ -63,7 +64,9 @@ export const GET = withErrorHandling(async () => {
 
   const recentRuns = (logsRes.data ?? []).map((log) => ({
     id: log.id,
-    connectorName: (log.sync_jobs as { merchants: { name: string } | null } | null)?.merchants?.name ?? "Unknown",
+    connectorName: embeddedOne<{ name: string }>(
+      embeddedOne<{ merchants: unknown }>(log.sync_jobs)?.merchants,
+    )?.name ?? "Unknown",
     status: log.status as "success" | "error" | "running",
     startedAt: log.started_at,
     itemsProcessed: log.items_processed,

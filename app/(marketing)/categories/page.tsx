@@ -1,4 +1,5 @@
-import { api } from "@/lib/api";
+import { fetchCategories } from "@/lib/server/catalog";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Section } from "@/components/layout/Section";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CategoryCard } from "@/components/category/CategoryCard";
@@ -13,7 +14,7 @@ export const metadata = {
 };
 
 export default async function CategoriesPage() {
-  const categories = await api.getCategories();
+  const categories = await fetchCategories(createPublicClient());
 
   return (
     <Section>

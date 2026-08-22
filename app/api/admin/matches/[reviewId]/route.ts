@@ -113,7 +113,7 @@ export const PATCH = withErrorHandling(async (request: Request, { params }: Rout
     action: decision === "approved" ? "match.approved" : "match.rejected",
     targetTable: "product_match_reviews",
     targetId: reviewId,
-    details: { candidateProductId: review[0].candidate_product_id, mergeLogId },
+    details: { candidateProductId: review.candidate_product_id, mergeLogId },
   });
 
   return NextResponse.json({ id: updated.id, status: updated.status, mergeLogId });

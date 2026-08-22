@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { fetchProductsByIds } from "@/lib/server/products";
+import { createPublicClient } from "@/lib/supabase/public";
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { api } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { getCheapestOffer, getDiscountPercent } from "@/lib/utils";
 import { Section } from "@/components/layout/Section";
@@ -39,7 +40,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
     );
   }
 
-  const products = await api.compare(ids.slice(0, 4));
+  const products = await fetchProductsByIds(createPublicClient(), ids.slice(0, 4));
 
   return (
     <Section>

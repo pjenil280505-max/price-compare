@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withErrorHandling } from "@/lib/server/errors";
+import { embeddedOne } from "@/lib/server/dbTypes";
 import { requirePermission } from "@/lib/server/rbac";
 import { listConnectors } from "@/lib/connectors/registry";
 
@@ -50,7 +51,7 @@ export const GET = withErrorHandling(async () => {
     });
 
     return {
-      merchantName: (job.merchants as { name: string } | null)?.name ?? "Unknown",
+      merchantName: embeddedOne<{ name: string }>(job.merchants)?.name ?? "Unknown",
       connectorKey: job.connector_key,
       connectorRegistered: Boolean(connector),
       envVarPrefix: prefix,
@@ -60,7 +61,7 @@ export const GET = withErrorHandling(async () => {
   });
 
   const affiliateCredentials = (affiliateRes.data ?? []).map((cfg) => ({
-    merchantName: (cfg.merchants as { name: string } | null)?.name ?? "Unknown",
+    merchantName: embeddedOne<{ name: string }>(cfg.merchants)?.name ?? "Unknown",
     network: cfg.network,
     isActive: cfg.is_active,
     trackingIdEnvVar: cfg.tracking_id_env_var,

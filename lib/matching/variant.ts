@@ -287,7 +287,8 @@ export function buildVariantLabel(axes: Partial<Record<VariantAxis, string>>): s
   const order: VariantAxis[] = ["storage", "ram", "capacity", "screen", "size", "length", "count", "color"];
   const parts = order
     .map((axis) => axes[axis])
-    .filter((v): v is string => Boolean(v))
+    // typeof, not Boolean(): the latter does not narrow the type.
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
     .map((v) => (v.length <= 4 ? v : v.charAt(0).toUpperCase() + v.slice(1)));
   return parts.join(" · ") || "Standard";
 }

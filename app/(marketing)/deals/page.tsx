@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { fetchCategories, fetchDeals } from "@/lib/server/catalog";
+import { createPublicClient } from "@/lib/supabase/public";
 import { cn } from "@/lib/utils";
 import { Section } from "@/components/layout/Section";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -22,9 +23,11 @@ export const metadata = {
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const { category: activeCategory } = await searchParams;
+  const supabase = createPublicClient();
+
   const [deals, categories] = await Promise.all([
-    api.getDeals(activeCategory),
-    api.getCategories(),
+    fetchDeals(supabase, activeCategory),
+    fetchCategories(supabase),
   ]);
 
   return (
