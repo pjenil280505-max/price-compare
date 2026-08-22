@@ -170,33 +170,9 @@ export default { z, ZodError };
 `,
 );
 
-// next/server — only NextResponse.json is exercised by the code under test.
-{
-  const dir = path.join(ROOT, "node_modules", "next");
-  mkdirSync(path.join(dir, "server"), { recursive: true });
-  writeFileSync(
-    path.join(dir, "package.json"),
-    JSON.stringify(
-      {
-        name: "next",
-        version: "0.0.0-teststub",
-        type: "module",
-        exports: { "./server": "./server/index.js" },
-      },
-      null,
-      2,
-    ),
-  );
-  writeFileSync(
-    path.join(dir, "server", "index.js"),
-    `export class NextResponse {
-  constructor(body, init) { this.body = body; this.status = init?.status ?? 200; }
-  static json(data, init) { const r = new NextResponse(data, init); r.data = data; return r; }
-  static redirect(url, init) { const r = new NextResponse(null, init); r.url = url; return r; }
-}
-export class NextRequest {}
-`,
-  );
-}
+// NOTE: next/server is NOT stubbed here. It is mapped to
+// tests/stubs/next-server.mjs by tests/resolver.mjs, so the harness never
+// writes into node_modules/next — doing so replaced the real install and
+// broke `next build`.
 
 console.log("Offline test stubs ready.");

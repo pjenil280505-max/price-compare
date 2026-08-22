@@ -13,7 +13,22 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const EXTENSIONS = [".ts", ".tsx", ".js", ".mjs"];
 
+/**
+ * Specifiers replaced with a local test double.
+ *
+ * `next/server` cannot load in a plain Node process — it expects the full
+ * framework runtime. The stub lives in tests/stubs/ rather than being
+ * written into node_modules, because mutating a real dependency is what
+ * previously broke `next build`.
+ */
+const TEST_DOUBLES = new Map([["next/server", "tests/stubs/next-server.mjs"]]);
+
 export async function resolve(specifier, context, nextResolve) {
+  const double = TEST_DOUBLES.get(specifier);
+  if (double) {
+    return { url: pathToFileURL(path.join(ROOT, double)).href, shortCircuit: true };
+  }
+
   let target = null;
 
   if (specifier.startsWith("@/")) {
