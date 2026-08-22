@@ -54,13 +54,27 @@ jobs:
 
       - run: npm ci
 
+      # Server Components now query Supabase directly, so prerendering makes
+      # a real connection. Placeholder credentials cannot work — the build
+      # needs a reachable project. Both values below are safe to store as
+      # repository secrets: the anon key is designed to be public and is
+      # constrained by RLS.
+      - name: Check credentials are configured
+        id: creds
+        run: |
+          if [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ] && [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping build — add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY as repository secrets to enable it."
+          fi
+
       - name: Build
+        if: steps.creds.outputs.ready == 'true'
         env:
-          # Placeholder values: the build must succeed without production
-          # secrets, or it cannot be verified before deploy.
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-          NEXT_PUBLIC_SITE_URL: https://example.com
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.APP_BASE_URL || 'https://example.com' }}
         run: npm run build
 
   e2e:

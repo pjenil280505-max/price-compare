@@ -14,11 +14,16 @@ name: Sync merchant connectors
 #   INTERNAL_CRON_SECRET must match the app's env var of the same name
 
 on:
-  schedule:
-    # Every 2 hours. The route itself decides which jobs are actually due
-    # (sync_jobs.next_run_at), so a frequent trigger is cheap — it usually
-    # finds nothing to do and returns immediately.
-    - cron: "0 */2 * * *"
+  # SCHEDULE DISABLED UNTIL DEPLOYMENT.
+  # These jobs POST to APP_BASE_URL. With no deployed app that URL
+  # does not exist, so every run failed — pure noise that buries real
+  # test failures. Re-enable by uncommenting below once the site is
+  # live and APP_BASE_URL + INTERNAL_CRON_SECRET are set.
+  # schedule:
+  # # Every 2 hours. The route itself decides which jobs are actually due
+  # # (sync_jobs.next_run_at), so a frequent trigger is cheap — it usually
+  # # finds nothing to do and returns immediately.
+  # - cron: "0 */2 * * *"
   workflow_dispatch:
     # Lets you trigger a sync by hand from the GitHub UI or mobile app.
 

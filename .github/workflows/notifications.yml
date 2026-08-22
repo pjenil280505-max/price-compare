@@ -9,10 +9,15 @@ name: Send notifications
 # Requires: APP_BASE_URL, INTERNAL_CRON_SECRET
 
 on:
-  schedule:
-    # Every 30 minutes. Retries use exponential backoff internally, so a
-# frequent trigger mostly finds nothing due and returns immediately.
-    - cron: "*/30 * * * *"
+  # SCHEDULE DISABLED UNTIL DEPLOYMENT.
+  # These jobs POST to APP_BASE_URL. With no deployed app that URL
+  # does not exist, so every run failed — pure noise that buries real
+  # test failures. Re-enable by uncommenting below once the site is
+  # live and APP_BASE_URL + INTERNAL_CRON_SECRET are set.
+  # schedule:
+  # Every 30 minutes. Retries use exponential backoff internally, so a
+  # frequent trigger mostly finds nothing due and returns immediately.
+  #   - cron: "*/30 * * * *"
   workflow_dispatch:
 
 concurrency:

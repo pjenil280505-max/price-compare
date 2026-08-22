@@ -8,8 +8,13 @@ name: Roll up price history
 #   APP_BASE_URL, INTERNAL_CRON_SECRET
 
 on:
-  schedule:
-    - cron: "0 3 * * 0"   # Sundays 03:00 UTC — low-traffic window
+  # SCHEDULE DISABLED UNTIL DEPLOYMENT.
+  # These jobs POST to APP_BASE_URL. With no deployed app that URL
+  # does not exist, so every run failed — pure noise that buries real
+  # test failures. Re-enable by uncommenting the cron line below once
+  # the site is live and APP_BASE_URL + INTERNAL_CRON_SECRET are set.
+  # schedule:
+  # - cron: "0 3 * * 0"   # Sundays 03:00 UTC — low-traffic window
   workflow_dispatch:
 
 concurrency:
